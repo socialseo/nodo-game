@@ -413,7 +413,7 @@
       </div>
       <div id="playerRows" style="margin-top:16px;"></div>
       <div class="field-group" id="vetoNote" style="font-size:12px; color:var(--ink-faint); line-height:1.5;">
-        Con 2 giocatori ciascuno riceve 3 gettoni Veto: servono a rifiutare una conquista senza discutere, impedendo che ogni tentativo venga bocciato per convenienza.
+        Ogni giocatore riceve 3 gettoni Veto: un solo Veto basta a far fallire una conquista, senza bisogno di discutere. A giudicare una conquista è solo chi non è coinvolto: con 2 giocatori è per forza il difensore, da 3 in su il difensore non vota sul proprio Nodo e decidono solo gli altri.
       </div>
       <button class="btn btn-primary btn-block" id="startBtn" style="margin-top:22px; padding:14px;">Inizia la partita</button>
     </div>
@@ -472,9 +472,10 @@
             <summary>Regole rapide</summary>
             <div class="rules-body">
               <p><strong>Espandi</strong> — scegli un Nodo non saturo (tuo, avversario o il Tema), scrivi una nuova parola in una casella libera adiacente collegata da un'associazione comprensibile. Il Nodo è subito tuo.</p>
-              <p><strong>Conquista</strong> — lancia i due dadi, scegli una delle due relazioni ottenute, scegli un tuo Nodo e un Nodo avversario e dimostra che quella relazione li collega. Gli altri giocatori votano: maggioranza a favore = conquista riuscita.</p>
+              <p><strong>Conquista</strong> — lancia i due dadi, scegli una delle due relazioni ottenute, scegli un tuo Nodo e un Nodo avversario e dimostra che quella relazione li collega. Giudicano solo i giocatori non coinvolti (con 2 giocatori, per forza il difensore): un solo Veto fa fallire la conquista.</p>
+              <p><strong>Veto</strong> — ogni giocatore ha 3 gettoni Veto. Un Veto blocca la conquista senza discutere ma si consuma; esauriti i gettoni, si può bloccare solo se la relazione è chiaramente insostenibile (giudizio condiviso).</p>
               <p><strong>Punteggio</strong> — alla fine, 1 Nodo controllato = 1 punto. Il Tema non vale punti per nessuno.</p>
-              <p><strong>Timer</strong> — se attivo, parte quando devi scrivere la nuova parola o la giustificazione: è un promemoria per dare ritmo, non blocca la mossa a tempo scaduto.</p>
+              <p><strong>Timer</strong> — se attivo, riparte ad ogni passo del turno (scegliere il Nodo, la relazione, scrivere, giudicare...): è un promemoria per dare ritmo, non blocca la mossa a tempo scaduto.</p>
             </div>
           </details>
         </div>
@@ -610,7 +611,6 @@
       row.appendChild(sw); row.appendChild(input);
       wrap.appendChild(row);
     });
-    $('#vetoNote').style.display = setupState.count===2 ? 'block' : 'none';
   }
 
   $('#adjRule').addEventListener('change', function(e){ setupState.adjRule = e.target.checked; });
@@ -657,7 +657,7 @@
       return { id:p.id, name: setupState.names[p.id] || p.name, varName:p.varName };
     });
     var veto = {};
-    if(players.length===2){ players.forEach(function(p){ veto[p.id]=3; }); }
+    players.forEach(function(p){ veto[p.id]=3; });
 
     S = {
       screen:'game', tema:tema, size:size, board:board, players:players,
@@ -737,12 +737,14 @@
 
     if(S.pending.type==='expand'){
       if(S.pending.step==='source'){
+        if(S.timerEnabled) ensureStepTimer(area, 'Tempo per scegliere il Nodo di partenza');
         area.appendChild(hint('Passo 1/3 — Scegli sulla griglia un Nodo non saturo dal quale espanderti (anche del Tema o di un avversario).'));
       } else if(S.pending.step==='target'){
+        if(S.timerEnabled) ensureStepTimer(area, 'Tempo per scegliere la casella');
         area.appendChild(hint('Passo 2/3 — Scegli una casella libera adiacente al Nodo selezionato.'));
         area.appendChild(cancelBtn());
       } else if(S.pending.step==='write'){
-        if(S.timerEnabled) startWordTimerIfNeeded(area);
+        if(S.timerEnabled) ensureStepTimer(area, 'Tempo per trovare la parola');
         area.appendChild(hint('Passo 3/3 — Scrivi la nuova parola e, se serve, come si collega al Nodo di partenza.'));
         var word = document.createElement('input'); word.type='text'; word.maxLength=20; word.placeholder='Nuova parola';
         var note = document.createElement('input'); note.type='text'; note.maxLength=80; note.placeholder='Collegamento (facoltativo) — es. "nasce da…"';
@@ -772,6 +774,7 @@
         });
         area.appendChild(rollBtn); area.appendChild(cancelBtn());
       } else if(S.pending.step==='choose'){
+        if(S.timerEnabled) ensureStepTimer(area, 'Tempo per scegliere la relazione');
         area.appendChild(hint('Passo 2/5 — Scegli quale delle due relazioni userai per la conquista.', true));
         var row = el('div','dice-row');
         var dieA = el('div','die a rolling', S.pending.relA);
@@ -782,28 +785,31 @@
         area.appendChild(row); area.appendChild(cancelBtn());
       } else if(S.pending.step==='source'){
         area.appendChild(relBadge());
+        if(S.timerEnabled) ensureStepTimer(area, 'Tempo per scegliere il tuo Nodo');
         area.appendChild(hint('Passo 3/5 — Scegli sulla griglia uno dei tuoi Nodi da cui attaccare.', true));
         area.appendChild(cancelBtn());
       } else if(S.pending.step==='target'){
         area.appendChild(relBadge());
+        if(S.timerEnabled) ensureStepTimer(area, 'Tempo per scegliere il Nodo da attaccare');
         area.appendChild(hint('Passo 4/5 — Scegli il Nodo avversario da conquistare'+(S.adjRule?' (deve essere adiacente sulla griglia).':'.'), true));
         area.appendChild(cancelBtn());
       } else if(S.pending.step==='justify'){
         area.appendChild(relBadge());
-        if(S.timerEnabled) startWordTimerIfNeeded(area);
+        if(S.timerEnabled) ensureStepTimer(area, 'Tempo per la giustificazione');
         var srcW = S.board[S.pending.source].word, tgtW = S.board[S.pending.target].word;
         area.appendChild(hint('Passo 5/5 — Dimostra che «'+S.pending.relation+'» collega '+srcW+' a '+tgtW+'. Dillo ad alta voce, poi scrivilo qui.', true));
         var ta = document.createElement('textarea'); ta.placeholder='es. «'+(srcW||'…')+' '+S.pending.relation.toLowerCase()+' '+(tgtW||'…')+'»';
-        var next = el('button','btn btn-primary btn-block','Chiedi il voto');
+        var next = el('button','btn btn-primary btn-block','Chiedi il giudizio');
         next.addEventListener('click', function(){
           S.pending.justification = ta.value.trim();
           S.pending.step='resolve';
-          S.pending.votes = {};
+          S.pending.judgeDecisions = {};
           renderGame();
         });
         area.appendChild(ta); area.appendChild(next); area.appendChild(cancelBtn());
       } else if(S.pending.step==='resolve'){
         area.appendChild(relBadge());
+        if(S.timerEnabled) ensureStepTimer(area, 'Tempo per decidere');
         renderResolvePanel(area);
       }
       return;
@@ -818,7 +824,7 @@
     return b;
   }
 
-  /* ============ WORD TIMER — conto alla rovescia per trovare le parole ============ */
+  /* ============ STEP TIMER — conto alla rovescia per ogni azione del turno ============ */
   function stopWordTimer(){
     if(wordTimerHandle){ clearInterval(wordTimerHandle); wordTimerHandle=null; }
   }
@@ -827,18 +833,22 @@
     var elapsed = Math.floor((Date.now()-S.pending.timerStartedAt)/1000);
     return Math.max(0, (S.pending.timerDuration||0) - elapsed);
   }
-  // Ancora la partenza del timer a un istante reale (timerStartedAt), così il conto alla
-  // rovescia resta corretto anche attraverso re-render o dopo aver ripreso una partita salvata.
-  function startWordTimerIfNeeded(container){
-    if(!S.pending.timerStartedAt){
+  // Ogni passo del turno (scegliere un Nodo, scegliere la relazione, scrivere, giudicare...)
+  // riceve il proprio conto alla rovescia: si resetta quando S.pending.step cambia (stepKey),
+  // ed è ancorato a un istante reale (timerStartedAt) così resta corretto anche attraverso
+  // re-render o dopo aver ripreso una partita salvata.
+  function ensureStepTimer(container, label){
+    var stepKey = S.pending.type+':'+S.pending.step;
+    if(S.pending.timerStep !== stepKey){
+      S.pending.timerStep = stepKey;
       S.pending.timerStartedAt = Date.now();
       S.pending.timerDuration = S.timerSeconds;
     }
     var box = el('div','timer-box');
     var head = el('div','timer-head');
-    head.appendChild(el('span','timer-lbl','Tempo per trovare la parola'));
-    var label = el('span','timer-num','');
-    head.appendChild(label);
+    head.appendChild(el('span','timer-lbl', label));
+    var numEl = el('span','timer-num','');
+    head.appendChild(numEl);
     var track = el('div','timer-track');
     var bar = el('div','timer-bar');
     track.appendChild(bar);
@@ -848,7 +858,7 @@
       var remaining = wordTimerRemaining();
       if(remaining===null){ stopWordTimer(); return; }
       var m = Math.floor(remaining/60), s = remaining%60;
-      label.textContent = remaining<=0 ? 'SCADUTO' : ((m<10?'0':'')+m+':'+(s<10?'0':'')+s);
+      numEl.textContent = remaining<=0 ? 'SCADUTO' : ((m<10?'0':'')+m+':'+(s<10?'0':'')+s);
       var pct = S.pending.timerDuration>0 ? (remaining/S.pending.timerDuration*100) : 0;
       bar.style.width = pct+'%';
       box.classList.toggle('warn', remaining<=30 && remaining>10);
@@ -860,55 +870,62 @@
     wordTimerHandle = setInterval(tick, 1000);
   }
 
+  // Giudici di una Conquista: con 2 giocatori è forzatamente il difensore (nessun altro esiste).
+  // Con 3-4 giocatori, il difensore è escluso — giudicano solo i giocatori neutrali, non coinvolti
+  // nell'attacco. Ogni giudice ha gettoni Veto: un solo Veto basta a far fallire la conquista.
+  function judgesFor(attacker, defenderId){
+    return S.players.length===2
+      ? S.players.filter(function(p){ return p.id===defenderId; })
+      : S.players.filter(function(p){ return p.id!==attacker.id && p.id!==defenderId; });
+  }
+
   function renderResolvePanel(area){
     var attacker = activePlayer();
     var defenderId = S.board[S.pending.target].owner;
     var defender = S.players.filter(function(p){ return p.id===defenderId; })[0];
+    var judges = judgesFor(attacker, defenderId);
+    if(!S.pending.judgeDecisions) S.pending.judgeDecisions = {};
 
-    if(S.players.length===2){
-      var vetoLeft = S.veto[defender.id]||0;
-      var wrap = el('div','stack');
-      wrap.appendChild(hint(defender.name+' difende. Gettoni Veto rimasti: '+vetoLeft+'.'));
-      var accept = el('button','btn btn-primary btn-block','Il difensore accetta → conquista riuscita');
-      accept.addEventListener('click', function(){ resolveConquest(true); });
-      wrap.appendChild(accept);
-      var reject = el('button','btn btn-ghost btn-block', vetoLeft>0 ? 'Usa un gettone Veto e rifiuta (‑1)' : 'Rifiuta (nessun Veto — solo se palesemente insostenibile)');
-      reject.addEventListener('click', function(){
-        if(vetoLeft>0) S.veto[defender.id] = vetoLeft-1;
-        resolveConquest(false, vetoLeft>0);
-      });
-      wrap.appendChild(reject);
-      area.appendChild(wrap);
-    } else {
-      var voters = playersExcept(attacker.id);
-      var list = el('div','panel panel-pad', '');
-      list.style.padding='4px 0';
-      voters.forEach(function(p){
-        var row = el('div','vote-row');
-        var nameSpan = el('div','vote-name');
-        var dotv = el('span','dot'); dotv.style.width='9px'; dotv.style.height='9px'; dotv.style.background='var('+p.varName+')';
-        nameSpan.appendChild(dotv); nameSpan.appendChild(document.createTextNode(p.name + (p.id===defenderId? ' (difende)':'')));
-        var btns = el('div','vote-btns');
-        var yes = el('button','vote-btn approve'+((S.pending.votes[p.id]==='yes')?' active':''),'Approva');
-        var no = el('button','vote-btn reject'+((S.pending.votes[p.id]==='no')?' active':''),'Rifiuta');
-        yes.addEventListener('click', function(){ S.pending.votes[p.id]='yes'; renderGame(); });
-        no.addEventListener('click', function(){ S.pending.votes[p.id]='no'; renderGame(); });
-        btns.appendChild(yes); btns.appendChild(no);
-        row.appendChild(nameSpan); row.appendChild(btns);
-        list.appendChild(row);
-      });
-      area.appendChild(list);
+    var wrap = el('div','stack');
+    wrap.appendChild(hint(
+      S.players.length===2
+        ? (defender.name+' decide da solo/a — con due giocatori non c\'è nessun altro a giudicare.')
+        : ('Giudicano solo i giocatori non coinvolti — '+defender.name+' (il difensore) non vota sul proprio Nodo.')
+    ));
 
-      var allVoted = voters.every(function(p){ return S.pending.votes[p.id]; });
-      var confirmBtn = el('button','btn btn-primary btn-block', allVoted ? 'Conferma esito del voto' : ('In attesa di '+ (voters.length - voters.filter(function(p){return S.pending.votes[p.id];}).length) +' voto/i'));
-      confirmBtn.disabled = !allVoted;
-      confirmBtn.addEventListener('click', function(){
-        var yes = voters.filter(function(p){ return S.pending.votes[p.id]==='yes'; }).length;
-        var no = voters.length - yes;
-        resolveConquest(yes>no);
+    judges.forEach(function(j){
+      var vetoLeft = S.veto[j.id]||0;
+      var decision = S.pending.judgeDecisions[j.id];
+      var row = el('div','vote-row');
+      var nameSpan = el('div','vote-name');
+      var dotv = el('span','dot'); dotv.style.width='9px'; dotv.style.height='9px'; dotv.style.background='var('+j.varName+')';
+      nameSpan.appendChild(dotv);
+      nameSpan.appendChild(document.createTextNode(j.name+' · Veto: '+vetoLeft));
+      var btns = el('div','vote-btns');
+      var approve = el('button','vote-btn approve'+(decision==='approve'?' active':''),'Approva');
+      var vetoBtn = el('button','vote-btn reject'+(decision==='veto'?' active':''),
+        vetoLeft>0 ? 'Blocca (Veto, ‑1)' : 'Blocca (nessun Veto — solo se insostenibile)');
+      approve.addEventListener('click', function(){ S.pending.judgeDecisions[j.id]='approve'; renderGame(); });
+      vetoBtn.addEventListener('click', function(){ S.pending.judgeDecisions[j.id]='veto'; renderGame(); });
+      btns.appendChild(approve); btns.appendChild(vetoBtn);
+      row.appendChild(nameSpan); row.appendChild(btns);
+      wrap.appendChild(row);
+    });
+
+    var allDecided = judges.every(function(j){ return !!S.pending.judgeDecisions[j.id]; });
+    var confirmBtn = el('button','btn btn-primary btn-block',
+      allDecided ? 'Conferma esito' : ('In attesa di '+(judges.length - judges.filter(function(j){return S.pending.judgeDecisions[j.id];}).length)+' giudice/i'));
+    confirmBtn.disabled = !allDecided;
+    confirmBtn.addEventListener('click', function(){
+      var vetoJudges = judges.filter(function(j){ return S.pending.judgeDecisions[j.id]==='veto'; });
+      var vetoUsedAny = false;
+      vetoJudges.forEach(function(j){
+        if((S.veto[j.id]||0) > 0){ S.veto[j.id] -= 1; vetoUsedAny = true; }
       });
-      area.appendChild(confirmBtn);
-    }
+      resolveConquest(vetoJudges.length===0, vetoUsedAny);
+    });
+    wrap.appendChild(confirmBtn);
+    area.appendChild(wrap);
     area.appendChild(cancelBtn());
   }
 
@@ -1011,11 +1028,9 @@
       var num = el('span','score-num', String(scoreOf(p.id)));
       row.appendChild(dot); row.appendChild(name); row.appendChild(num);
       wrap.appendChild(row);
-      if(S.players.length===2){
-        var vc = el('div','veto-count', 'Veto: '+(S.veto[p.id]!==undefined?S.veto[p.id]:3));
-        vc.style.marginLeft='29px'; vc.style.marginTop='-6px'; vc.style.marginBottom='4px';
-        wrap.appendChild(vc);
-      }
+      var vc = el('div','veto-count', 'Veto: '+(S.veto[p.id]!==undefined?S.veto[p.id]:3));
+      vc.style.marginLeft='29px'; vc.style.marginTop='-6px'; vc.style.marginBottom='4px';
+      wrap.appendChild(vc);
     });
   }
   function renderLog(){
