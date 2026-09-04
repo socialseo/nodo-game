@@ -114,6 +114,13 @@
   }
   .theme-toggle button[aria-pressed="true"]{ background:var(--surface); color:var(--ink); box-shadow:var(--shadow); }
 
+  /* Header ridotto durante la partita, per lasciare più spazio in alto alla scacchiera e al turno */
+  #shell.compact-brand{ padding-top:12px; }
+  .compact-brand .brand-row{ margin-bottom:10px; }
+  .compact-brand .wordmark .glyph{ font-size:19px; }
+  .compact-brand .wordmark .tag{ display:none; }
+  .compact-brand .theme-toggle button{ padding:3px 7px; font-size:11px; }
+
   .panel{
     background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
   }
@@ -174,9 +181,10 @@
   /* ============ GAME SCREEN ============ */
   #game{ display:none; }
   .topbar{
-    display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:14px 18px; margin-bottom:18px;
+    display:flex; flex-direction:column; gap:10px; padding:10px 12px; margin-bottom:14px;
   }
-  .turn-chip{ display:flex; align-items:center; gap:9px; padding:7px 13px 7px 9px; border-radius:999px; background:var(--surface-2); border:1px solid var(--line); }
+  .topbar-row1{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .turn-chip{ display:flex; align-items:center; gap:9px; padding:6px 12px 6px 8px; border-radius:999px; background:var(--surface-2); border:1px solid var(--line); }
   .dot{ width:11px; height:11px; border-radius:50%; }
   .turn-chip .name{ font-weight:800; font-size:14px; }
   .turn-chip .sub{ font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); }
@@ -238,12 +246,11 @@
   .panel-pad{ padding:18px; }
   .panel h2{ font-size:14px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.09em; color:var(--ink-faint); font-weight:600; margin-bottom:12px; }
 
-  .action-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .action-row{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .action-btn{
-    border-radius:10px; padding:16px 10px; text-align:left; border:1px solid var(--line-strong); background:var(--surface-2);
+    border-radius:9px; padding:10px 8px; text-align:center; border:1px solid var(--line-strong); background:var(--surface-2);
   }
-  .action-btn .label{ display:block; font-family:var(--font-display); font-weight:700; font-size:16px; color:var(--ink); }
-  .action-btn .desc{ display:block; font-size:11px; color:var(--ink-faint); margin-top:3px; }
+  .action-btn .label{ display:block; font-family:var(--font-display); font-weight:700; font-size:14px; color:var(--ink); }
   .action-btn:hover{ border-color:var(--accent); }
   .action-btn.espandi.active{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, var(--surface)); }
   .action-btn.conquista.active{ border-color:var(--danger); background:color-mix(in srgb, var(--danger) 14%, var(--surface)); }
@@ -329,7 +336,6 @@
   .podium-card .lbl{ font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); text-transform:uppercase; margin-top:4px; }
 
   @media (max-width:520px){
-    .action-row{ grid-template-columns:1fr; }
     .board-wrap{ padding:12px; }
     .cell .word{ font-size:9.5px; }
   }
@@ -422,39 +428,36 @@
   <!-- ============ GAME ============ -->
   <div id="game">
     <div class="panel topbar">
-      <div class="turn-chip">
-        <span class="dot" id="activeDot"></span>
-        <span><span class="name" id="activeName"></span><br/><span class="sub" id="activeSub"></span></span>
+      <div class="topbar-row1">
+        <div class="turn-chip">
+          <span class="dot" id="activeDot"></span>
+          <span><span class="name" id="activeName"></span><br/><span class="sub" id="activeSub"></span></span>
+        </div>
+        <div class="spacer"></div>
+        <span class="turn-counter" id="turnCounter"></span>
       </div>
-      <div class="tema-pill" id="temaPill"></div>
-      <div class="spacer"></div>
-      <span class="turn-counter" id="turnCounter"></span>
-      <button class="btn btn-ghost" id="endGameBtn" style="padding:8px 13px; font-size:12.5px;">Termina partita</button>
+      <div class="action-row">
+        <button class="action-btn espandi" id="btnEspandi">
+          <span class="label">Espandi</span>
+        </button>
+        <button class="action-btn conquista" id="btnConquista">
+          <span class="label">Conquista</span>
+        </button>
+      </div>
     </div>
 
     <div class="board-layout">
       <div class="panel board-wrap">
         <div class="board" id="board"></div>
         <div class="board-caption">
-          <span id="satLegend">▮ tick pieno = lato occupato · Nodo saturo quando tutti i lati disponibili sono pieni</span>
+          <span class="tema-pill" id="temaPill"></span>
           <span id="boardFillCount"></span>
         </div>
       </div>
 
       <div class="stack">
         <div class="panel panel-pad">
-          <h2>Il tuo turno</h2>
-          <div class="action-row">
-            <button class="action-btn espandi" id="btnEspandi">
-              <span class="label">Espandi</span>
-              <span class="desc">associazione libera</span>
-            </button>
-            <button class="action-btn conquista" id="btnConquista">
-              <span class="label">Conquista</span>
-              <span class="desc">associazione vincolata</span>
-            </button>
-          </div>
-          <div id="actionArea" style="margin-top:14px; display:flex; flex-direction:column; gap:10px;"></div>
+          <div id="actionArea" style="display:flex; flex-direction:column; gap:10px;"></div>
         </div>
 
         <div class="panel panel-pad">
@@ -469,15 +472,17 @@
 
         <div class="panel panel-pad">
           <details class="rules">
-            <summary>Regole rapide</summary>
+            <summary>Regole rapide, Veto e collegamenti</summary>
             <div class="rules-body">
               <p><strong>Espandi</strong> — scegli un Nodo non saturo (tuo, avversario o il Tema), scrivi una nuova parola in una casella libera adiacente collegata da un'associazione comprensibile. Il Nodo è subito tuo.</p>
               <p><strong>Conquista</strong> — lancia i due dadi, scegli una delle due relazioni ottenute, scegli un tuo Nodo e un Nodo avversario e dimostra che quella relazione li collega. Giudicano solo i giocatori non coinvolti (con 2 giocatori, per forza il difensore): un solo Veto fa fallire la conquista.</p>
               <p><strong>Veto</strong> — ogni giocatore ha 3 gettoni Veto. Un Veto blocca la conquista senza discutere ma si consuma; esauriti i gettoni, si può bloccare solo se la relazione è chiaramente insostenibile (giudizio condiviso).</p>
               <p><strong>Punteggio</strong> — alla fine, 1 Nodo controllato = 1 punto. Il Tema non vale punti per nessuno.</p>
               <p><strong>Timer</strong> — se attivo, riparte ad ogni passo del turno (scegliere il Nodo, la relazione, scrivere, giudicare...): è un promemoria per dare ritmo, non blocca la mossa a tempo scaduto.</p>
+              <p><strong>Tacche sui Nodi</strong> — ▮ tick pieno = lato occupato. Un Nodo è saturo (non più utilizzabile per espandere) quando tutti i lati disponibili sono pieni.</p>
             </div>
           </details>
+          <button class="btn btn-ghost btn-block" id="endGameBtn" style="margin-top:14px; padding:8px 13px; font-size:12.5px;">Termina partita</button>
         </div>
       </div>
     </div>
@@ -675,6 +680,7 @@
     $('#setup').style.display='none';
     $('#end').style.display='none';
     $('#game').style.display='block';
+    $('#shell').classList.add('compact-brand');
     renderGame();
   }
 
@@ -733,7 +739,10 @@
     $('#btnEspandi').classList.toggle('active', !!(S.pending && S.pending.type==='expand'));
     $('#btnConquista').classList.toggle('active', !!(S.pending && S.pending.type==='conquer'));
 
-    if(!S.pending) return;
+    if(!S.pending){
+      area.appendChild(hint('Scegli Espandi o Conquista qui sopra per iniziare il turno di <strong>'+activePlayer().name+'</strong>.'));
+      return;
+    }
 
     if(S.pending.type==='expand'){
       if(S.pending.step==='source'){
@@ -1062,6 +1071,7 @@
   function enterEndScreen(){
     $('#game').style.display='none';
     $('#end').style.display='block';
+    $('#shell').classList.remove('compact-brand');
     var ranked = S.players.map(function(p){ return {p:p, score:scoreOf(p.id)}; }).sort(function(a,b){ return b.score-a.score; });
     var top = ranked[0].score;
     $('#endTitle').textContent = 'Tema: '+S.tema+' — '+ranked.filter(function(r){return r.score===top;}).map(function(r){return r.p.name;}).join(' e ') + (ranked.filter(function(r){return r.score===top;}).length>1?' pari merito':' vince');
